@@ -3,13 +3,15 @@
 #include <ESP8266WiFi.h>
 #include <IRremoteESP8266.h>
 
-const char* SSID = "ssid";
+const char* SSID = "ClayAirport";
 const char* PASSWORD = "pass";
 
 const int BAUD_RATE = 115200;
 
-const char* BROKER_MQTT = "DSDSDSDSD";
-const int BROKER_PORT = 8080;
+const char* BROKER_MQTT = "m13.cloudmqtt.com";
+const int BROKER_PORT = 16585;
+const char* BROKER_USER = "DSDSDSDSD";
+const char* BROKER_PASS = "DSDSDSDSD";
 
 WiFiClient espClient;
 PubSubClient MQTT(espClient);
@@ -19,11 +21,14 @@ int RECV_PIN = 12; //PINO DIGITAL EM QUE O FOTORRECEPTOR ESTÁ CONECTADO - GPIO1
 IRrecv irrecv(RECV_PIN); //VARIÁVEL DO TIPO IRrecv
 decode_results results;
 
-
+//Protótipos
 void initWiFi();
 void initSerial();
 void dump(decode_results *results);
 void mqtt_callback(char* topic, byte* payload, unsigned int length);
+void recconectWiFi();
+void reconnectMQTT();
+void initMQTT();
 
 void setup()
 {
@@ -36,6 +41,8 @@ void setup()
   else
   {
     initWiFi();
+    initMQTT();
+    recconectWiFi();
   }
 }
 
@@ -50,13 +57,25 @@ void loop()
       irrecv.resume(); //RECEBE O PRÓXIMO VALOR
     }
   }
+  else
+  {
+    if (!MQTT.connected())
+    {
+      reconnectMQTT();
+    }
+
+    recconectWiFi();
+    MQTT.loop();
+  }
 }
 
-void initSerial() {
+void initSerial()
+{
   Serial.begin(BAUD_RATE);
 }
 
-void initWiFi() {
+void initWiFi()
+{
   delay(10);
   Serial.println("Conectando-se em: " + String(SSID));
 
@@ -70,7 +89,44 @@ void initWiFi() {
   Serial.println(WiFi.localIP());
 }
 
-void mqtt_callback(char* topic, byte* payload, unsigned int length) {
+void reconnectMQTT()
+{
+  while (!MQTT.connected())
+  {
+    Serial.println("Tentando se conectar ao Broker MQTT: " + String(BROKER_MQTT));
+
+    if (MQTT.connect("ESP8266-ESP12-E", BROKER_USER, BROKER_PASS))
+    {
+      Serial.println("Conectado");
+      MQTT.subscribe("DZ/esp8266-01/led");
+    }
+    else
+    {
+      Serial.println("Falha ao Reconectar :(");
+      Serial.println("Tentando se reconectar em 2 segundos");
+      delay(2000);
+    }
+  }
+}
+
+void recconectWiFi()
+{
+  while (WiFi.status() != WL_CONNECTED)
+  {
+    delay(100);
+    Serial.print(".");
+  }
+}
+
+void initMQTT()
+{
+  MQTT.setServer(BROKER_MQTT, BROKER_PORT);
+  MQTT.setCallback(mqtt_callback);
+}
+
+
+void mqtt_callback(char* topic, byte* payload, unsigned int length)
+{
 
   String message;
   for (int i = 0; i < length; i++) {
@@ -131,11 +187,14 @@ void dump(decode_results *results) {
   Serial.print(count, DEC);
   Serial.print("): ");
 
-  for (int i = 1; i < count; i++) {
-    if (i & 1) {
+  for (int i = 1; i < count; i++)
+  {
+    if (i & 1)
+    {
       Serial.print(results->rawbuf[i]*USECPERTICK, DEC);
     }
-    else {
+    else
+    {
       Serial.write('-');
       Serial.print((unsigned long) results->rawbuf[i]*USECPERTICK, DEC);
     }
