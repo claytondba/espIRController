@@ -1,6 +1,5 @@
-#include <ESP8266WiFi.h>
 #include "actions.h"
-
+#include <MySQL_Connection.h>
 //ID do dispositivo !!!
 #define ID_DIPO "ir-remote-01"
 
@@ -43,6 +42,7 @@ void setup()
 {
 
   act.MQTT = MQTT;
+  act.topico = SUB_TOPIC;
 
   initSerial();
 
@@ -111,7 +111,7 @@ void reconnectMQTT()
     if (MQTT.connect(ID_DIPO, BROKER_USER, BROKER_PASS))
     {
       Serial.println("Conectado");
-      MQTT.subscribe(SUB_TOPIC);
+      act.inscrever();
     }
     else
     {
