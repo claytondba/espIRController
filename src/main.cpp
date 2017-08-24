@@ -3,15 +3,19 @@
 #include <ESP8266WiFi.h>
 #include <IRremoteESP8266.h>
 
-const char* SSID = "ClayAirport";
-const char* PASSWORD = "pass";
+//ID do dispositivo !!!
+#define ID_DIPO "ir-remote-01"
 
-const int BAUD_RATE = 115200;
+#define SSID "ClayAirport"
+#define PASSWORD  "pass"
 
-const char* BROKER_MQTT = "m13.cloudmqtt.com";
-const int BROKER_PORT = 16585;
-const char* BROKER_USER = "DSDSDSDSD";
-const char* BROKER_PASS = "DSDSDSDSD";
+#define BAUD_RATE 115200
+
+#define BROKER_MQTT "m13.cloudmqtt.com"
+#define BROKER_PORT  16585
+#define BROKER_USER "DSDSDSDSD"
+#define BROKER_PASS "DSDSDSDSD"
+#define SUB_TOPIC "home/sala/ircontroll/cmd"
 
 WiFiClient espClient;
 PubSubClient MQTT(espClient);
@@ -42,7 +46,6 @@ void setup()
   {
     initWiFi();
     initMQTT();
-    recconectWiFi();
   }
 }
 
@@ -95,10 +98,10 @@ void reconnectMQTT()
   {
     Serial.println("Tentando se conectar ao Broker MQTT: " + String(BROKER_MQTT));
 
-    if (MQTT.connect("ESP8266-ESP12-E", BROKER_USER, BROKER_PASS))
+    if (MQTT.connect(ID_DIPO, BROKER_USER, BROKER_PASS))
     {
       Serial.println("Conectado");
-      MQTT.subscribe("DZ/esp8266-01/led");
+      MQTT.subscribe(SUB_TOPIC);
     }
     else
     {
