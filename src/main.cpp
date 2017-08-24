@@ -1,7 +1,5 @@
-#include <Arduino.h>
-#include <PubSubClient.h>
 #include <ESP8266WiFi.h>
-#include <IRremoteESP8266.h>
+#include "actions.h"
 
 //ID do dispositivo !!!
 #define ID_DIPO "ir-remote-01"
@@ -17,12 +15,18 @@
 #define BROKER_PASS "DSDSDSDSD"
 #define SUB_TOPIC "home/sala/ircontroll/cmd"
 
+//Configurcao do IR
+#define RECV_PIN 12
+#define SEND_PIN 14
+
 WiFiClient espClient;
 PubSubClient MQTT(espClient);
+Action act;
 
 bool MODO_COPIA = false; //Modo de cópia de codigos IR
-int RECV_PIN = 12; //PINO DIGITAL EM QUE O FOTORRECEPTOR ESTÁ CONECTADO - GPIO12 / PINO D6
+
 IRrecv irrecv(RECV_PIN); //VARIÁVEL DO TIPO IRrecv
+IRsend irsend(SEND_PIN);
 decode_results results;
 
 //Protótipos
@@ -34,12 +38,17 @@ void recconectWiFi();
 void reconnectMQTT();
 void initMQTT();
 
+
 void setup()
 {
+
+  act.MQTT = MQTT;
+
   initSerial();
 
   if(MODO_COPIA)
   {
+    Serial.println("Atencao!! Modo de copia de comandos ativado!!");
     irrecv.enableIRIn();
   }
   else
@@ -53,6 +62,7 @@ void loop()
 {
   if(MODO_COPIA)
   {
+
     if (irrecv.decode(&results))
     {
       Serial.println(results.value, HEX);
@@ -127,25 +137,23 @@ void initMQTT()
   MQTT.setCallback(mqtt_callback);
 }
 
-
+//Método para tratar menssagens recebidas
 void mqtt_callback(char* topic, byte* payload, unsigned int length)
 {
 
   String message;
-  for (int i = 0; i < length; i++) {
+  for (int i = 0; i < length; i++)
+  {
     char c = (char)payload[i];
     message += c;
   }
-  Serial.println("Tópico => " + String(topic) + " | Valor => " + String(message));
-  if (message == "1") {
-    Serial.println("1");
-  }
-  else
-  {
-    Serial.println(message);
-  }
 
+  Serial.println("Tópico => " + String(topic) + " | Valor => " + String(message));
   Serial.flush();
+
+  act.cmd = message;
+  act.execute();
+
 }
 
 void dump(decode_results *results) {
