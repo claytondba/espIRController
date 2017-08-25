@@ -1,5 +1,6 @@
 #include "actions.h"
-#include <MySQL_Connection.h>
+
+
 //ID do dispositivo !!!
 #define ID_DIPO "ir-remote-01"
 
@@ -18,9 +19,17 @@
 #define RECV_PIN 12
 #define SEND_PIN 14
 
+#define DEBUG //Depuracao!!
+
+
 WiFiClient espClient;
 PubSubClient MQTT(espClient);
 Action act;
+
+IPAddress server_addr(10,0,1,35); // IP mysql
+char user[] = "root";              // MySQL user login username
+char password[] = "secret"; // MySQL user login password
+MySQL_Connection conn((Client *)&espClient);
 
 bool MODO_COPIA = false; //Modo de cópia de codigos IR
 
@@ -43,6 +52,7 @@ void setup()
 
   act.MQTT = MQTT;
   act.topico = SUB_TOPIC;
+  act.cur = MySQL_Cursor(&conn);
 
   initSerial();
 
@@ -54,7 +64,27 @@ void setup()
   else
   {
     initWiFi();
+    #ifdef DEBUG
+      Serial.println("Passou WiFi no setup....");
+    #endif
+
     initMQTT();
+    #ifdef DEBUG
+      Serial.println("Passou MQTT no setup....");
+    #endif
+    if (conn.connect(server_addr, 3306, user, password))
+    {
+      Serial.println("Entrou!!!!!!");
+      // You would add your code here to run a query once on startup.
+    }
+    else
+    {
+      Serial.println("Connection failed.");
+      conn.close();
+    }
+    #ifdef DEBUG
+      Serial.println("Passou Mysql no setup....");
+    #endif
   }
 }
 
